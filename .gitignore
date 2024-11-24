@@ -39,3 +39,25 @@ logs/
 ### Application Properties ###
 application-local.yml
 application-local.properties
+
+### Security ###
+.env
+*.p12
+*.jks
+*.keystore
+*.truststore
+*.cer
+*.crt
+*.key
+*.pem
+/certs/
+**/src/main/resources/keystore/
+**/src/main/resources/truststore/
+
+### Secrets ###
+**/secrets/
+**/credentials/
+*secret*
+*password*
+!example.env
+!example.properties

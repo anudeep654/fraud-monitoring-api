@@ -1,6 +1,6 @@
 package com.fraudguard.notification.config;
 
-import com.fraudguard.fraud.entity.Transaction;
+import com.fraudguard.shared.model.Transaction;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "notification-service");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.fraudguard.fraud.entity");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.fraudguard.shared.model");
         
         return new DefaultKafkaConsumerFactory<>(props,
             new StringDeserializer(),

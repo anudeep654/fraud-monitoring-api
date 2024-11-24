@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("/api/fraud")
+@RequestMapping("/api/v1/fraud")
 @RequiredArgsConstructor
 public class FraudController {
     private final FraudService fraudService;
-    
+
     @PostMapping("/validate")
-    public ResponseEntity<Transaction> validateTransaction(
-            @Valid @RequestBody Transaction request) {
-        return ResponseEntity.ok(fraudService.validateTransaction(request));
+    public ResponseEntity<Transaction> validateTransaction(@Valid @RequestBody Transaction transaction) {
+        Transaction result = fraudService.validateTransaction(transaction);
+        return ResponseEntity.ok(result);
     }
 }

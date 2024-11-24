@@ -1,43 +1,100 @@
 server:
   port: 8080
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: PKCS12
+    key-alias: fraudguard
 
 spring:
   application:
     name: api-gateway
   cloud:
     gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 10
+            redis-rate-limiter.burstCapacity: 20
+            redis-rate-limiter.requestedTokens: 1
       routes:
         - id: fraud-service
-          uri: http://localhost:8081
+          uri: lb://fraud-service
           predicates:
             - Path=/v1/validate/**
           filters:
             - RewritePath=/v1/validate/(?<segment>.*), /api/fraud/$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: fraudServiceCircuitBreaker
+                fallbackUri: forward:/fallback/fraud
         - id: notification-service
-          uri: http://localhost:8082
+          uri: lb://notification-service
           predicates:
             - Path=/v1/notifications/**
           filters:
             - RewritePath=/v1/notifications/(?<segment>.*), /api/notifications/$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/notification
         - id: model-service
-          uri: http://localhost:8083
+          uri: lb://model-service
           predicates:
             - Path=/v1/model/**
           filters:
             - RewritePath=/v1/model/(?<segment>.*), /api/model/$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: modelServiceCircuitBreaker
+                fallbackUri: forward:/fallback/model
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://your-auth-server/
-          jwk-set-uri: https://your-auth-server/.well-known/jwks.json
+          issuer-uri: ${JWT_ISSUER_URI}
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+  redis:
+    host: localhost
+    port: 6379
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      fraudServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
+        baseConfig: default
+      modelServiceCircuitBreaker:
+        baseConfig: default
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

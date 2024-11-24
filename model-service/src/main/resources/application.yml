@@ -1,19 +1,87 @@
 server:
   port: 8083
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: PKCS12
+    key-alias: fraudguard
 
 spring:
   application:
     name: model-service
   cache:
-    type: caffeine
-    caffeine:
-      spec: maximumSize=1000,expireAfterWrite=1h
+    type: redis
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+    cache-names:
+      - modelPredictions
+      - riskScores
+  redis:
+    host: localhost
+    port: 6379
+    password: ${REDIS_PASSWORD}
+    timeout: 2000
+    
+model:
+  config:
+    model-path: ${MODEL_PATH:models/fraud-detection-v1.pkl}
+    threshold: 0.7
+    batch-size: 32
+    max-queue-size: 100
+    update-interval: 3600
+
+security:
+  encryption:
+    key: ${ENCRYPTION_KEY}
+    algorithm: AES/GCM/NoPadding
+    enabled: true
+
+resilience4j:
+  bulkhead:
+    instances:
+      modelPrediction:
+        maxConcurrentCalls: 50
+        maxWaitDuration: 1000
+  ratelimiter:
+    instances:
+      modelPrediction:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 500ms
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        prediction-latency: true
+      sla:
+        prediction-latency: 100ms, 500ms, 1000ms
+
+logging:
+  level:
+    root: INFO
+    com.fraudguard: DEBUG
+    org.springframework.cache: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/model-service.log
+    max-size: 10MB
+    max-history: 7

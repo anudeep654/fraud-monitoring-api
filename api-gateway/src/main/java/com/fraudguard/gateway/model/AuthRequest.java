@@ -1,0 +1,9 @@
+package com.fraudguard.gateway.model;
+
+import lombok.Data;
+
+@Data
+public class AuthRequest {
+    private String username;
+    private String password;
+}

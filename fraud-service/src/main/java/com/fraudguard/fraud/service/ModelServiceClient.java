@@ -7,6 +7,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "model-service", url = "${model-service.url}")
 public interface ModelServiceClient {
-    @PostMapping("/predict")
+    @PostMapping("/api/v1/model/predict")
     Transaction predictRisk(@RequestBody Transaction transaction);
 }
