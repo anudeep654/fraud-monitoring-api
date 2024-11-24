@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: fraud-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/v1/validate/**
+          filters:
+            - RewritePath=/v1/validate/(?<segment>.*), /api/fraud/$\{segment}
+        - id: notification-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/v1/notifications/**
+          filters:
+            - RewritePath=/v1/notifications/(?<segment>.*), /api/notifications/$\{segment}
+        - id: model-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/v1/model/**
+          filters:
+            - RewritePath=/v1/model/(?<segment>.*), /api/model/$\{segment}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://your-auth-server/
+          jwk-set-uri: https://your-auth-server/.well-known/jwks.json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
